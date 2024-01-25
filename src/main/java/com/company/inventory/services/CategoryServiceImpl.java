@@ -18,6 +18,8 @@ import java.util.logging.Logger;
 public class CategoryServiceImpl implements ICategoryService{
 
     public static final String RESPUESTA_FALLIDA = "Respuesta fallida";
+    public static final String RESPUESTA_OK = "Respuesta ok";
+    public static final String ERROR = "Error: ";
     private final ICategoryDao categoryDao;
     @Autowired
     public  CategoryServiceImpl(ICategoryDao categoryDao){
@@ -31,10 +33,10 @@ public class CategoryServiceImpl implements ICategoryService{
         try {
             List<Category> categories = (List<Category>) categoryDao.findAll();
             responseRest.getCategoryResponse().setCategories(categories);
-            responseRest.setMetadata("Respuesta ok","200", "Respuesta exitosa");
+            responseRest.setMetadata(RESPUESTA_OK,"200", "Categorías obtenidas");
         }catch (Exception e){
             responseRest.setMetadata(RESPUESTA_FALLIDA,"500", "Error al consultar categorías");
-            logger.severe("Error: " + e.getMessage());
+            logger.severe(ERROR + e.getMessage());
             return new ResponseEntity<>(responseRest, HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return new ResponseEntity<>(responseRest, HttpStatus.OK);
@@ -51,14 +53,38 @@ public class CategoryServiceImpl implements ICategoryService{
             if(category.isPresent()){
                 categories.add(category.get());
                 responseRest.getCategoryResponse().setCategories(categories);
-                responseRest.setMetadata("Respuesta ok","200", "Respuesta exitosa");
+                responseRest.setMetadata(RESPUESTA_OK,"200", "Categoría encontrada");
             }else {
-                responseRest.setMetadata(RESPUESTA_FALLIDA,"404", "No se encontró categoría");
+                responseRest.setMetadata(RESPUESTA_FALLIDA,"404", "No se encontró categoría con el ID solicitado");
                 return new ResponseEntity<>(responseRest, HttpStatus.NOT_FOUND);
             }
         }catch (Exception e){
             responseRest.setMetadata(RESPUESTA_FALLIDA,"500", "Error al consultar por ID");
-            logger.severe("Error: " + e.getMessage());
+            logger.severe(ERROR + e.getMessage());
+            return new ResponseEntity<>(responseRest, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        return new ResponseEntity<>(responseRest, HttpStatus.OK);
+    }
+
+    @Override
+    @Transactional
+    public ResponseEntity<CategoryResponseRest> save(Category category) {
+        CategoryResponseRest responseRest = new CategoryResponseRest();
+        List<Category> categories = new ArrayList<>();
+        Logger logger = Logger.getLogger(getClass().getName());
+        try{
+            Category categorySaved = categoryDao.save(category);
+            if(categorySaved != null) {
+                categories.add(categorySaved);
+                responseRest.getCategoryResponse().setCategories(categories);
+                responseRest.setMetadata(RESPUESTA_OK,"200", "Categoría guardada");
+            }else {
+                responseRest.setMetadata(RESPUESTA_FALLIDA,"400", "No se guardó categoría");
+                return new ResponseEntity<>(responseRest, HttpStatus.BAD_REQUEST);
+            }
+        }catch (Exception e){
+            responseRest.setMetadata(RESPUESTA_FALLIDA,"500", "Error al guardar categoría");
+            logger.severe(ERROR + e.getMessage());
             return new ResponseEntity<>(responseRest, HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return new ResponseEntity<>(responseRest, HttpStatus.OK);
